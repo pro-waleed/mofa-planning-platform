@@ -1,0 +1,30 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: mofa-planning-postgres
+    environment:
+      POSTGRES_DB: mofa_planning
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  app:
+    build: .
+    container_name: mofa-planning-app
+    depends_on:
+      - postgres
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/mofa_planning?schema=public
+      NEXT_PUBLIC_APP_NAME: منصة التخطيط المؤسسي
+      NEXT_PUBLIC_BASE_URL: http://localhost:3000
+    ports:
+      - "3000:3000"
+
+volumes:
+  postgres_data:
+

@@ -1,0 +1,665 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum TemplateStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum FieldType {
+  TEXT
+  LONG_TEXT
+  NUMBER
+  PERCENT
+  DATE
+  SELECT
+  BOOLEAN
+  USER
+  KPI
+  STATUS
+}
+
+enum PlanStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  RETURNED
+  ARCHIVED
+}
+
+enum PlanNodeStatus {
+  DRAFT
+  ACTIVE
+  AT_RISK
+  COMPLETED
+  ON_HOLD
+}
+
+enum KPIStatus {
+  HEALTHY
+  WATCH
+  CRITICAL
+}
+
+enum MonitoringCycleStatus {
+  PLANNED
+  OPEN
+  IN_REVIEW
+  CLOSED
+  RETURNED
+}
+
+enum MonitoringUpdateStatus {
+  DRAFT
+  SUBMITTED
+  REVIEWED
+  RETURNED
+}
+
+enum MissionReportStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  RETURNED
+  APPROVED
+}
+
+enum CommentType {
+  GENERAL
+  REVIEW
+  RETURN
+}
+
+enum TrainingProgramStatus {
+  DRAFT
+  OPEN
+  NOMINATION_CLOSED
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum TrainingNominationStatus {
+  PENDING_MANAGER_APPROVAL
+  APPROVED
+  REJECTED
+  WITHDRAWN
+}
+
+enum ParticipationStatus {
+  REGISTERED
+  ATTENDED
+  COMPLETED
+  NO_SHOW
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  RETURNED
+}
+
+enum NotificationType {
+  APPROVAL
+  ALERT
+  REPORT
+  TRAINING
+  SYSTEM
+}
+
+enum NotificationStatus {
+  UNREAD
+  READ
+  ARCHIVED
+}
+
+model Role {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  nameAr      String
+  description String?  @db.Text
+  users       User[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model OrganizationalUnit {
+  id                String               @id @default(cuid())
+  code              String?              @unique
+  nameAr            String
+  description       String?              @db.Text
+  level             Int                  @default(1)
+  parentId          String?
+  parent            OrganizationalUnit?  @relation("OrgUnitHierarchy", fields: [parentId], references: [id])
+  children          OrganizationalUnit[] @relation("OrgUnitHierarchy")
+  users             User[]
+  plans             Plan[]
+  monitoringCycles  MonitoringCycle[]
+  missionReports    MissionReport[]
+  trainingPrograms  TrainingProgram[]
+  knowledgeDocs     KnowledgeDocument[]
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+
+  @@index([parentId])
+}
+
+model User {
+  id                      String                  @id @default(cuid())
+  email                   String                  @unique
+  fullNameAr              String
+  fullNameEn              String?
+  titleAr                 String?
+  phone                   String?
+  avatarUrl               String?
+  status                  UserStatus              @default(ACTIVE)
+  lastLoginAt             DateTime?
+  roleId                  String
+  role                    Role                    @relation(fields: [roleId], references: [id])
+  organizationalUnitId    String?
+  organizationalUnit      OrganizationalUnit?     @relation(fields: [organizationalUnitId], references: [id])
+  createdTemplates        Template[]              @relation("TemplateCreatedBy")
+  createdPlans            Plan[]                  @relation("PlanCreatedBy")
+  ownedPlans              Plan[]                  @relation("PlanOwner")
+  ownedPlanNodes          PlanNode[]              @relation("PlanNodeOwner")
+  ownedInitiatives        Initiative[]            @relation("InitiativeOwner")
+  ownedKpis               KPI[]                   @relation("KpiOwner")
+  createdMonitoringCycles MonitoringCycle[]       @relation("MonitoringCycleCreatedBy")
+  monitoringUpdates       MonitoringUpdate[]      @relation("MonitoringUpdateAuthor")
+  submittedMissionReports MissionReport[]         @relation("MissionReportSubmittedBy")
+  reviewedMissionReports  MissionReport[]         @relation("MissionReportReviewedBy")
+  missionReportComments   MissionReportComment[]  @relation("MissionReportCommentAuthor")
+  createdTrainingPrograms TrainingProgram[]       @relation("TrainingProgramCreatedBy")
+  submittedNominations    TrainingNomination[]    @relation("TrainingNominee")
+  nominationApprovals     TrainingNomination[]    @relation("TrainingNominationManager")
+  trainingParticipations  TrainingParticipation[] @relation("TrainingParticipant")
+  knowledgeDocuments      KnowledgeDocument[]     @relation("KnowledgeUploadedBy")
+  requestedApprovals      ApprovalRequest[]       @relation("ApprovalRequester")
+  assignedApprovals       ApprovalRequest[]       @relation("ApprovalAssignee")
+  notifications           Notification[]
+  auditLogs               AuditLog[]              @relation("AuditActor")
+  createdAt               DateTime                @default(now())
+  updatedAt               DateTime                @updatedAt
+
+  @@index([roleId])
+  @@index([organizationalUnitId])
+}
+
+model Template {
+  id               String            @id @default(cuid())
+  code             String            @unique
+  nameAr           String
+  description      String?           @db.Text
+  moduleScope      String?
+  status           TemplateStatus    @default(DRAFT)
+  version          Int               @default(1)
+  createdById      String
+  createdBy        User              @relation("TemplateCreatedBy", fields: [createdById], references: [id])
+  levels           TemplateLevel[]
+  fields           TemplateField[]
+  plans            Plan[]
+  approvalRequests ApprovalRequest[]
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  @@index([status])
+  @@index([createdById])
+}
+
+model TemplateLevel {
+  id             String         @id @default(cuid())
+  templateId     String
+  template       Template       @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  key            String
+  nameAr         String
+  description    String?        @db.Text
+  levelOrder     Int
+  isRequired     Boolean        @default(true)
+  iconName       String?
+  fields         TemplateField[]
+  planNodes      PlanNode[]
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@unique([templateId, key])
+  @@unique([templateId, levelOrder])
+  @@index([templateId])
+}
+
+model TemplateField {
+  id             String        @id @default(cuid())
+  templateId     String
+  template       Template      @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  levelId        String
+  level          TemplateLevel @relation(fields: [levelId], references: [id], onDelete: Cascade)
+  key            String
+  labelAr        String
+  description    String?       @db.Text
+  fieldType      FieldType
+  placeholder    String?
+  options        Json?
+  isRequired     Boolean       @default(false)
+  isSystem       Boolean       @default(false)
+  fieldOrder     Int
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@unique([levelId, key])
+  @@index([templateId])
+}
+
+model Plan {
+  id               String            @id @default(cuid())
+  code             String            @unique
+  titleAr          String
+  description      String?           @db.Text
+  periodLabel      String
+  status           PlanStatus        @default(DRAFT)
+  templateId       String
+  template         Template          @relation(fields: [templateId], references: [id])
+  organizationalUnitId String?
+  organizationalUnit OrganizationalUnit? @relation(fields: [organizationalUnitId], references: [id])
+  ownerId          String
+  owner            User              @relation("PlanOwner", fields: [ownerId], references: [id])
+  createdById      String
+  createdBy        User              @relation("PlanCreatedBy", fields: [createdById], references: [id])
+  startDate        DateTime
+  endDate          DateTime
+  submittedAt      DateTime?
+  approvedAt       DateTime?
+  templateSnapshot Json?
+  nodes            PlanNode[]
+  initiatives      Initiative[]
+  monitoringCycles MonitoringCycle[]
+  approvals        ApprovalRequest[]
+  knowledgeDocs    KnowledgeDocument[]
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  @@index([templateId])
+  @@index([organizationalUnitId])
+  @@index([ownerId])
+  @@index([status])
+}
+
+model PlanNode {
+  id                String           @id @default(cuid())
+  planId            String
+  plan              Plan             @relation(fields: [planId], references: [id], onDelete: Cascade)
+  parentId          String?
+  parent            PlanNode?        @relation("PlanNodeTree", fields: [parentId], references: [id])
+  children          PlanNode[]       @relation("PlanNodeTree")
+  templateLevelId   String
+  templateLevel     TemplateLevel    @relation(fields: [templateLevelId], references: [id])
+  code              String?
+  titleAr           String
+  description       String?          @db.Text
+  status            PlanNodeStatus   @default(DRAFT)
+  sortOrder         Int              @default(0)
+  ownerId           String?
+  owner             User?            @relation("PlanNodeOwner", fields: [ownerId], references: [id])
+  startDate         DateTime?
+  endDate           DateTime?
+  progressPercent   Int              @default(0)
+  customFieldValues Json?
+  kpiLinks          PlanNodeKPI[]
+  initiatives       Initiative[]
+  monitoringUpdates MonitoringUpdate[]
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  @@index([planId])
+  @@index([parentId])
+  @@index([templateLevelId])
+  @@index([ownerId])
+}
+
+model Initiative {
+  id                String         @id @default(cuid())
+  code              String         @unique
+  titleAr           String
+  description       String?        @db.Text
+  status            PlanNodeStatus @default(ACTIVE)
+  planId            String
+  plan              Plan           @relation(fields: [planId], references: [id], onDelete: Cascade)
+  planNodeId        String
+  planNode          PlanNode       @relation(fields: [planNodeId], references: [id], onDelete: Cascade)
+  ownerId           String
+  owner             User           @relation("InitiativeOwner", fields: [ownerId], references: [id])
+  startDate         DateTime
+  endDate           DateTime
+  progressPercent   Int            @default(0)
+  blockerSummary    String?        @db.Text
+  correctiveAction  String?        @db.Text
+  dependencies      Json?
+  evidenceUrl       String?
+  monitoringUpdates MonitoringUpdate[]
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  @@index([planId])
+  @@index([planNodeId])
+  @@index([ownerId])
+}
+
+model KPI {
+  id                String           @id @default(cuid())
+  code              String           @unique
+  titleAr           String
+  description       String?          @db.Text
+  unitAr            String
+  source            String?
+  ownerId           String?
+  owner             User?            @relation("KpiOwner", fields: [ownerId], references: [id])
+  baselineValue     Float?
+  targetValue       Float?
+  actualValue       Float?
+  warningThreshold  Float?
+  criticalThreshold Float?
+  status            KPIStatus        @default(HEALTHY)
+  frequencyLabel    String?
+  nodeLinks         PlanNodeKPI[]
+  monitoringUpdates MonitoringUpdate[]
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  @@index([ownerId])
+  @@index([status])
+}
+
+model PlanNodeKPI {
+  id         String   @id @default(cuid())
+  planNodeId String
+  planNode   PlanNode @relation(fields: [planNodeId], references: [id], onDelete: Cascade)
+  kpiId      String
+  kpi        KPI      @relation(fields: [kpiId], references: [id], onDelete: Cascade)
+  weight     Int?
+  notes      String?  @db.Text
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([planNodeId, kpiId])
+  @@index([kpiId])
+}
+
+model MonitoringCycle {
+  id                String                 @id @default(cuid())
+  titleAr           String
+  periodLabel       String
+  status            MonitoringCycleStatus  @default(PLANNED)
+  planId            String
+  plan              Plan                   @relation(fields: [planId], references: [id], onDelete: Cascade)
+  ownerUnitId       String?
+  ownerUnit         OrganizationalUnit?    @relation(fields: [ownerUnitId], references: [id])
+  createdById       String
+  createdBy         User                   @relation("MonitoringCycleCreatedBy", fields: [createdById], references: [id])
+  startDate         DateTime
+  endDate           DateTime
+  summary           String?                @db.Text
+  updates           MonitoringUpdate[]
+  approvals         ApprovalRequest[]
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+
+  @@index([planId])
+  @@index([ownerUnitId])
+  @@index([status])
+}
+
+model MonitoringUpdate {
+  id                    String                 @id @default(cuid())
+  cycleId               String
+  cycle                 MonitoringCycle        @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  planNodeId            String?
+  planNode              PlanNode?              @relation(fields: [planNodeId], references: [id])
+  initiativeId          String?
+  initiative            Initiative?            @relation(fields: [initiativeId], references: [id])
+  kpiId                 String?
+  kpi                   KPI?                   @relation(fields: [kpiId], references: [id])
+  reportedProgress      Int?
+  obstacleText          String?                @db.Text
+  correctiveActionText  String?                @db.Text
+  reviewComment         String?                @db.Text
+  status                MonitoringUpdateStatus @default(DRAFT)
+  submittedById         String
+  submittedBy           User                   @relation("MonitoringUpdateAuthor", fields: [submittedById], references: [id])
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+
+  @@index([cycleId])
+  @@index([planNodeId])
+  @@index([initiativeId])
+  @@index([kpiId])
+  @@index([submittedById])
+}
+
+model MissionReport {
+  id               String               @id @default(cuid())
+  code             String               @unique
+  titleAr          String
+  reportingPeriod  String
+  missionNameAr    String
+  countryAr        String
+  status           MissionReportStatus  @default(DRAFT)
+  organizationalUnitId String?
+  organizationalUnit OrganizationalUnit? @relation(fields: [organizationalUnitId], references: [id])
+  submittedById    String
+  submittedBy      User                 @relation("MissionReportSubmittedBy", fields: [submittedById], references: [id])
+  reviewerId       String?
+  reviewer         User?                @relation("MissionReportReviewedBy", fields: [reviewerId], references: [id])
+  completionPercent Int                 @default(0)
+  executiveSummary String?              @db.Text
+  achievements     String?              @db.Text
+  challenges       String?              @db.Text
+  supportRequests  String?              @db.Text
+  content          Json?
+  statusHistory    Json?
+  comments         MissionReportComment[]
+  approvals        ApprovalRequest[]
+  knowledgeDocs    KnowledgeDocument[]
+  submittedAt      DateTime?
+  returnedAt       DateTime?
+  approvedAt       DateTime?
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  @@index([organizationalUnitId])
+  @@index([submittedById])
+  @@index([reviewerId])
+  @@index([status])
+}
+
+model MissionReportComment {
+  id         String      @id @default(cuid())
+  reportId   String
+  report     MissionReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  authorId   String
+  author     User        @relation("MissionReportCommentAuthor", fields: [authorId], references: [id])
+  type       CommentType @default(GENERAL)
+  comment    String      @db.Text
+  createdAt  DateTime    @default(now())
+
+  @@index([reportId])
+  @@index([authorId])
+}
+
+model TrainingProgram {
+  id                String                  @id @default(cuid())
+  code              String                  @unique
+  titleAr           String
+  providerAr        String
+  locationAr        String?
+  status            TrainingProgramStatus   @default(DRAFT)
+  targetAudience    String?
+  description       String?                 @db.Text
+  seats             Int                     @default(0)
+  startDate         DateTime
+  endDate           DateTime
+  organizationalUnitId String?
+  organizationalUnit OrganizationalUnit?    @relation(fields: [organizationalUnitId], references: [id])
+  createdById       String
+  createdBy         User                    @relation("TrainingProgramCreatedBy", fields: [createdById], references: [id])
+  nominations       TrainingNomination[]
+  participations    TrainingParticipation[]
+  knowledgeDocs     KnowledgeDocument[]
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
+
+  @@index([organizationalUnitId])
+  @@index([createdById])
+  @@index([status])
+}
+
+model TrainingNomination {
+  id              String                   @id @default(cuid())
+  programId       String
+  program         TrainingProgram          @relation(fields: [programId], references: [id], onDelete: Cascade)
+  nomineeId       String
+  nominee         User                     @relation("TrainingNominee", fields: [nomineeId], references: [id])
+  managerId       String
+  manager         User                     @relation("TrainingNominationManager", fields: [managerId], references: [id])
+  status          TrainingNominationStatus @default(PENDING_MANAGER_APPROVAL)
+  motivation      String?                  @db.Text
+  managerComment  String?                  @db.Text
+  approvals       ApprovalRequest[]
+  participation   TrainingParticipation?
+  submittedAt     DateTime                 @default(now())
+  decidedAt       DateTime?
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+
+  @@unique([programId, nomineeId])
+  @@index([managerId])
+  @@index([status])
+}
+
+model TrainingParticipation {
+  id               String              @id @default(cuid())
+  programId        String
+  program          TrainingProgram     @relation(fields: [programId], references: [id], onDelete: Cascade)
+  participantId    String
+  participant      User                @relation("TrainingParticipant", fields: [participantId], references: [id])
+  nominationId     String?             @unique
+  nomination       TrainingNomination? @relation(fields: [nominationId], references: [id])
+  status           ParticipationStatus @default(REGISTERED)
+  certificateUrl   String?
+  postTrainingReport String?           @db.Text
+  impactEvaluation String?             @db.Text
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  @@index([programId])
+  @@index([participantId])
+  @@index([status])
+}
+
+model KnowledgeDocument {
+  id                 String              @id @default(cuid())
+  code               String              @unique
+  titleAr            String
+  documentType       String
+  summary            String?             @db.Text
+  fileUrl            String?
+  tags               String[]
+  organizationalUnitId String?
+  organizationalUnit OrganizationalUnit? @relation(fields: [organizationalUnitId], references: [id])
+  uploadedById       String
+  uploadedBy         User                @relation("KnowledgeUploadedBy", fields: [uploadedById], references: [id])
+  planId             String?
+  plan               Plan?               @relation(fields: [planId], references: [id])
+  missionReportId    String?
+  missionReport      MissionReport?      @relation(fields: [missionReportId], references: [id])
+  trainingProgramId  String?
+  trainingProgram    TrainingProgram?    @relation(fields: [trainingProgramId], references: [id])
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  @@index([organizationalUnitId])
+  @@index([uploadedById])
+  @@index([planId])
+  @@index([missionReportId])
+  @@index([trainingProgramId])
+}
+
+model ApprovalRequest {
+  id                 String          @id @default(cuid())
+  titleAr            String
+  description        String?         @db.Text
+  entityType         String
+  entityId           String
+  status             ApprovalStatus  @default(PENDING)
+  requesterId        String
+  requester          User            @relation("ApprovalRequester", fields: [requesterId], references: [id])
+  assignedToId       String
+  assignedTo         User            @relation("ApprovalAssignee", fields: [assignedToId], references: [id])
+  decisionComment    String?         @db.Text
+  dueDate            DateTime?
+  requestedAt        DateTime        @default(now())
+  actedAt            DateTime?
+  routeSnapshot      Json?
+  planId             String?
+  plan               Plan?           @relation(fields: [planId], references: [id])
+  monitoringCycleId  String?
+  monitoringCycle    MonitoringCycle? @relation(fields: [monitoringCycleId], references: [id])
+  missionReportId    String?
+  missionReport      MissionReport?  @relation(fields: [missionReportId], references: [id])
+  trainingNominationId String?
+  trainingNomination TrainingNomination? @relation(fields: [trainingNominationId], references: [id])
+  templateId         String?
+  template           Template?       @relation(fields: [templateId], references: [id])
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  @@index([requesterId])
+  @@index([assignedToId])
+  @@index([status])
+  @@index([entityType, entityId])
+}
+
+model Notification {
+  id          String             @id @default(cuid())
+  userId      String
+  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  titleAr     String
+  messageAr   String             @db.Text
+  type        NotificationType   @default(SYSTEM)
+  status      NotificationStatus @default(UNREAD)
+  link        String?
+  createdAt   DateTime           @default(now())
+  readAt      DateTime?
+  updatedAt   DateTime           @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([type])
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  actorId     String?
+  actor       User?    @relation("AuditActor", fields: [actorId], references: [id])
+  action      String
+  entityType  String
+  entityId    String
+  description String   @db.Text
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  @@index([actorId])
+  @@index([entityType, entityId])
+}

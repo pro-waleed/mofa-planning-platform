@@ -1,0 +1,72 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top right, rgba(12, 109, 98, 0.12), transparent 22%),
+    radial-gradient(circle at top left, rgba(214, 231, 223, 0.8), transparent 28%),
+    linear-gradient(180deg, #f8faf8 0%, #f1f5f2 100%);
+  color: #12211d;
+}
+
+* {
+  border-color: #d7dfdc;
+}
+
+::selection {
+  background: rgba(12, 109, 98, 0.18);
+}
+
+.surface-grid {
+  background-image:
+    linear-gradient(rgba(18, 33, 29, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(18, 33, 29, 0.04) 1px, transparent 1px);
+  background-size: 34px 34px;
+}
+
+.page-shell {
+  @apply animate-fade-in;
+}
+
+.panel {
+  @apply rounded-2xl border border-dashboard-line/70 bg-white/90 shadow-panel backdrop-blur-sm;
+}
+
+.section-title {
+  @apply text-lg font-bold text-dashboard-ink;
+}
+
+.section-subtitle {
+  @apply text-sm text-muted-foreground;
+}
+
+.metric-chip {
+  @apply inline-flex items-center rounded-full border border-primary/10 bg-primary/5 px-3 py-1 text-sm font-medium text-primary;
+}
+
+.status-draft {
+  @apply bg-slate-100 text-slate-700;
+}
+
+.status-active {
+  @apply bg-emerald-100 text-emerald-700;
+}
+
+.status-warning {
+  @apply bg-amber-100 text-amber-700;
+}
+
+.status-danger {
+  @apply bg-rose-100 text-rose-700;
+}
+
