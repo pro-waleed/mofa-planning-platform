@@ -52,7 +52,7 @@ async function main() {
       {
         id: "role-admin",
         code: "SYSTEM_ADMIN",
-        permissions: ["*"],
+        permissions: ["*", "users.manage", "roles.manage", "settings.manage"],
         nameAr: "مسؤول النظام",
         description: "يدير إعدادات النظام والصلاحيات والتهيئة العامة."
       },

@@ -4,6 +4,8 @@
 
 The MVP seeds eight institutional roles. Each seeded user has a username, hashed password, role, organizational unit, and a JSON permission list that prepares the platform for a fuller RBAC implementation.
 
+User creation and editing are available from `/users` only to accounts with `users.manage`. The current demo grants this through the System Administrator role. Other roles can view the user directory without changing account data.
+
 ## Demo Credentials
 
 | Role scenario | Username | Password |

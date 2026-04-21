@@ -29,7 +29,7 @@ The platform helps the directorate standardize planning and reporting workflows 
 - Knowledge and research library with metadata and cross-module links
 - Workflow approvals queue across plans, reports, monitoring cycles, training, and templates
 - Notifications and institutional activity history
-- Demo authentication and role context for stakeholder walkthroughs
+- Credential-based demo authentication, user management, and role-driven permissions for stakeholder walkthroughs
 
 ## Screenshots
 

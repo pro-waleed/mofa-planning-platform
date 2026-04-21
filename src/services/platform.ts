@@ -531,18 +531,24 @@ export async function getUsersDirectory() {
       email: true,
       fullNameAr: true,
       titleAr: true,
+      phone: true,
       status: true,
       lastLoginAt: true,
+      passwordUpdatedAt: true,
       failedLoginCount: true,
+      createdAt: true,
       role: {
         select: {
+          id: true,
           code: true,
           nameAr: true,
+          description: true,
           permissions: true
         }
       },
       organizationalUnit: {
         select: {
+          id: true,
           nameAr: true
         }
       },
@@ -557,6 +563,32 @@ export async function getUsersDirectory() {
     },
     orderBy: [{ organizationalUnitId: "asc" }, { fullNameAr: "asc" }]
   });
+}
+
+export async function getUserManagementData() {
+  const [users, roles, units] = await Promise.all([
+    getUsersDirectory(),
+    prisma.role.findMany({
+      select: {
+        id: true,
+        code: true,
+        nameAr: true,
+        description: true,
+        permissions: true
+      },
+      orderBy: { nameAr: "asc" }
+    }),
+    prisma.organizationalUnit.findMany({
+      select: {
+        id: true,
+        nameAr: true,
+        code: true
+      },
+      orderBy: [{ level: "asc" }, { nameAr: "asc" }]
+    })
+  ]);
+
+  return { users, roles, units };
 }
 
 export async function getSettingsData() {

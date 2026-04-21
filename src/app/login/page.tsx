@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { demoAccountByUserId } from "@/config/demo-accounts";
+import { getPermissionLabels } from "@/config/permissions";
 import { loginWithCredentials } from "@/features/auth/actions";
 import { prisma } from "@/lib/prisma";
 
@@ -20,36 +21,6 @@ type LoginPageProps = {
   searchParams: Promise<{
     error?: string;
   }>;
-};
-
-const permissionLabels: Record<string, string> = {
-  "*": "صلاحيات كاملة",
-  "dashboard.read": "قراءة لوحة القيادة",
-  "plans.approve": "اعتماد الخطط",
-  "plans.review": "مراجعة الخطط",
-  "plans.submit": "رفع الخطط",
-  "plans.create": "إنشاء الخطط",
-  "plans.edit": "تحرير الخطط",
-  "plans.read": "قراءة الخطط",
-  "templates.manage": "إدارة القوالب",
-  "approvals.decide": "اتخاذ قرارات الاعتماد",
-  "reports.review": "مراجعة التقارير",
-  "reports.create": "إنشاء التقارير",
-  "reports.edit_own": "تعديل تقاريره",
-  "reports.read": "قراءة التقارير",
-  "kpis.manage": "إدارة المؤشرات",
-  "kpis.update": "تحديث المؤشرات",
-  "kpis.read": "قراءة المؤشرات",
-  "monitoring.manage": "إدارة المتابعة",
-  "monitoring.submit": "رفع تحديثات المتابعة",
-  "initiatives.update": "تحديث المبادرات",
-  "training.manage": "إدارة التدريب",
-  "training.approve": "اعتماد الترشيحات",
-  "training.nominations.review": "مراجعة الترشيحات",
-  "training.nominate_self": "طلب ترشيح تدريبي",
-  "knowledge.manage": "إدارة المعرفة",
-  "knowledge.read": "قراءة المعرفة",
-  "audit.read": "قراءة سجل النشاط"
 };
 
 function getErrorMessage(error?: string) {
@@ -66,14 +37,6 @@ function getErrorMessage(error?: string) {
   }
 
   return null;
-}
-
-function getPermissions(permissions: unknown) {
-  if (!Array.isArray(permissions)) return [];
-
-  return permissions
-    .filter((permission): permission is string => typeof permission === "string")
-    .map((permission) => permissionLabels[permission] ?? permission);
 }
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
@@ -234,7 +197,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           <div className="grid max-h-[70vh] gap-4 overflow-y-auto pe-1">
             {users.map((user) => {
               const account = demoAccountByUserId[user.id];
-              const permissions = getPermissions(user.role.permissions).slice(0, 4);
+              const permissions = getPermissionLabels(user.role.permissions).slice(0, 4);
 
               return (
                 <article

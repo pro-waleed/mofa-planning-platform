@@ -1,7 +1,9 @@
 import { cookies } from "next/headers";
+import type { Route } from "next";
 import { redirect } from "next/navigation";
 import { createHmac, timingSafeEqual } from "crypto";
 
+import { hasPermission } from "@/config/permissions";
 import { prisma } from "@/lib/prisma";
 
 const SESSION_SECRET = process.env.DEMO_SESSION_SECRET ?? "mofa-demo-session";
@@ -102,6 +104,16 @@ export async function requireCurrentUser() {
 
   if (!user) {
     redirect("/login");
+  }
+
+  return user;
+}
+
+export async function requirePermission(permission: string, fallbackPath = "/dashboard") {
+  const user = await requireCurrentUser();
+
+  if (!hasPermission(user, permission)) {
+    redirect(`${fallbackPath}?error=forbidden` as Route);
   }
 
   return user;
