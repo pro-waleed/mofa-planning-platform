@@ -5,19 +5,20 @@ export const statusMeta = {
   SUBMITTED: { label: "مرفوع", tone: "warning" },
   UNDER_REVIEW: { label: "قيد المراجعة", tone: "warning" },
   APPROVED: { label: "معتمد", tone: "success" },
-  RETURNED: { label: "مُعاد", tone: "danger" },
-  AT_RISK: { label: "متعثّر", tone: "danger" },
+  RETURNED: { label: "معاد للاستكمال", tone: "danger" },
+  AT_RISK: { label: "متعثر", tone: "danger" },
   COMPLETED: { label: "مكتمل", tone: "success" },
-  ON_HOLD: { label: "معلق", tone: "warning" },
+  ON_HOLD: { label: "معلّق", tone: "warning" },
   HEALTHY: { label: "صحي", tone: "success" },
   WATCH: { label: "يتطلب متابعة", tone: "warning" },
   CRITICAL: { label: "حرج", tone: "danger" },
   PLANNED: { label: "مخطط", tone: "neutral" },
   OPEN: { label: "مفتوح", tone: "success" },
   IN_REVIEW: { label: "قيد المراجعة", tone: "warning" },
+  REVIEWED: { label: "تمت المراجعة", tone: "success" },
   REJECTED: { label: "مرفوض", tone: "danger" },
   PENDING: { label: "بانتظار الإجراء", tone: "warning" },
-  NOMINATION_CLOSED: { label: "أُغلق الترشيح", tone: "neutral" },
+  NOMINATION_CLOSED: { label: "أغلق الترشيح", tone: "neutral" },
   IN_PROGRESS: { label: "قيد التنفيذ", tone: "warning" },
   PENDING_MANAGER_APPROVAL: { label: "بانتظار اعتماد المدير", tone: "warning" },
   WITHDRAWN: { label: "منسحب", tone: "neutral" },
@@ -40,4 +41,3 @@ export function getStatusMeta(status?: string | null) {
     tone: "neutral" as const
   };
 }
-

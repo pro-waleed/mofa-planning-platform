@@ -81,7 +81,7 @@ Responsibilities:
 Typical read flow:
 
 1. App Router page loads on the server.
-2. `requireCurrentUser()` resolves the demo session and role context.
+2. `requireCurrentUser()` validates the signed session cookie and resolves the active user role context.
 3. Page calls aggregators from `src/services/platform.ts`.
 4. Prisma queries read the relevant institutional entities.
 5. Server components render an RTL page with Arabic content.
@@ -124,7 +124,12 @@ This allows the same application to support multiple planning methodologies with
 
 ## Security And Authentication Notes
 
-The current MVP uses a seeded demo login flow with a cookie-based role context to support stakeholder walkthroughs quickly.
+The current MVP uses a seeded credential login flow for stakeholder walkthroughs:
+
+- each seeded user has a unique username
+- demo passwords are stored as salted `scrypt` hashes
+- the session cookie is HTTP-only and signed with `DEMO_SESSION_SECRET`
+- roles include a JSON permission list for the next RBAC phase
 
 For production, replace this with:
 

@@ -10,6 +10,10 @@ export default async function NewPlanPage() {
     }),
     prisma.user.findMany({
       where: { status: "ACTIVE" },
+      select: {
+        id: true,
+        fullNameAr: true
+      },
       orderBy: { fullNameAr: "asc" }
     }),
     prisma.organizationalUnit.findMany({
@@ -21,11 +25,10 @@ export default async function NewPlanPage() {
     <div className="space-y-6 page-shell">
       <PageHeader
         title="إنشاء خطة من قالب"
-        description="اختر القالب المناسب، ثم أنشئ خطة جديدة قابلة للبناء الهرمي والتحرير وربط مؤشرات الأداء."
+        description="اختر القالب المناسب ثم أنشئ خطة جديدة قابلة للبناء الهرمي وربط الملكية والمؤشرات والاعتمادات."
         backHref="/plans"
       />
       <PlanForm templates={templates} users={users} units={units} />
     </div>
   );
 }
-

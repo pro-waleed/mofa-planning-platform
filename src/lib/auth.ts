@@ -1,12 +1,20 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { createHmac, timingSafeEqual } from "crypto";
 
 import { prisma } from "@/lib/prisma";
 
-export const DEMO_USER_COOKIE = "mofa-demo-user";
+const SESSION_SECRET = process.env.DEMO_SESSION_SECRET ?? "mofa-demo-session";
+
+export const AUTH_SESSION_COOKIE = process.env.DEMO_SESSION_SECRET
+  ? `mofa-session-${process.env.DEMO_SESSION_SECRET.slice(0, 8)}`
+  : "mofa-session";
+
+export const DEMO_USER_COOKIE = AUTH_SESSION_COOKIE;
 
 export type CurrentUser = {
   id: string;
+  username: string | null;
   email: string;
   fullNameAr: string;
   titleAr: string | null;
@@ -14,6 +22,7 @@ export type CurrentUser = {
     id: string;
     nameAr: string;
     code: string;
+    permissions: unknown;
   };
   organizationalUnit: {
     id: string;
@@ -22,26 +31,66 @@ export type CurrentUser = {
 };
 
 const currentUserInclude = {
-  role: true,
-  organizationalUnit: true
+  id: true,
+  username: true,
+  email: true,
+  fullNameAr: true,
+  titleAr: true,
+  status: true,
+  role: {
+    select: {
+      id: true,
+      nameAr: true,
+      code: true,
+      permissions: true
+    }
+  },
+  organizationalUnit: {
+    select: {
+      id: true,
+      nameAr: true
+    }
+  }
 } as const;
+
+function signUserId(userId: string) {
+  return createHmac("sha256", SESSION_SECRET).update(userId).digest("hex");
+}
+
+function createSessionValue(userId: string) {
+  return `${userId}.${signUserId(userId)}`;
+}
+
+function parseSessionValue(value: string | undefined) {
+  if (!value) return null;
+
+  const [userId, signature] = value.split(".");
+
+  if (!userId || !signature) return null;
+
+  const expected = Buffer.from(signUserId(userId), "hex");
+  const actual = Buffer.from(signature, "hex");
+
+  if (expected.length !== actual.length) return null;
+
+  return timingSafeEqual(expected, actual) ? userId : null;
+}
 
 export async function getCurrentUser() {
   try {
     const cookieStore = await cookies();
-    const userId = cookieStore.get(DEMO_USER_COOKIE)?.value;
+    const userId = parseSessionValue(cookieStore.get(AUTH_SESSION_COOKIE)?.value);
 
-    if (userId) {
-      return prisma.user.findUnique({
-        where: { id: userId },
-        include: currentUserInclude
-      });
+    if (!userId) {
+      return null;
     }
 
     return prisma.user.findFirst({
-      where: { status: "ACTIVE" },
-      include: currentUserInclude,
-      orderBy: { createdAt: "asc" }
+      where: {
+        id: userId,
+        status: "ACTIVE"
+      },
+      select: currentUserInclude
     });
   } catch {
     return null;
@@ -58,17 +107,21 @@ export async function requireCurrentUser() {
   return user;
 }
 
-export async function setDemoSession(userId: string) {
+export async function setAuthenticatedSession(userId: string) {
   const cookieStore = await cookies();
-  cookieStore.set(DEMO_USER_COOKIE, userId, {
+  cookieStore.set(AUTH_SESSION_COOKIE, createSessionValue(userId), {
     httpOnly: true,
+    maxAge: 60 * 60 * 8,
     sameSite: "lax",
     path: "/",
     secure: process.env.NODE_ENV === "production"
   });
 }
 
-export async function clearDemoSession() {
+export async function clearAuthenticatedSession() {
   const cookieStore = await cookies();
-  cookieStore.delete(DEMO_USER_COOKIE);
+  cookieStore.delete(AUTH_SESSION_COOKIE);
 }
+
+export const setDemoSession = setAuthenticatedSession;
+export const clearDemoSession = clearAuthenticatedSession;

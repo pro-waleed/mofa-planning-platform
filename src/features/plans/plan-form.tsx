@@ -1,8 +1,8 @@
 "use client";
 
-import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTransition } from "react";
+import { useForm } from "react-hook-form";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,7 +22,7 @@ const initialValues: PlanFormValues = {
   titleAr: "",
   code: "",
   description: "",
-  periodLabel: "2026",
+  periodLabel: "2026 - 2028",
   templateId: "",
   organizationalUnitId: "",
   ownerId: "",
@@ -48,16 +48,25 @@ export function PlanForm({ templates, users, units }: PlanFormProps) {
       <Card>
         <CardHeader>
           <CardTitle>البيانات العامة</CardTitle>
+          <p className="section-subtitle">
+            عرّف هوية الخطة ونطاقها المؤسسي والفترة التي تغطيها.
+          </p>
         </CardHeader>
         <CardContent className="grid gap-4">
           <div className="grid gap-2">
             <label className="text-sm font-medium">عنوان الخطة</label>
-            <Input {...form.register("titleAr")} />
+            <Input
+              {...form.register("titleAr")}
+              placeholder="مثال: الخطة المؤسسية للتخطيط والبحوث 2026 - 2028"
+            />
             <p className="text-sm text-rose-600">{form.formState.errors.titleAr?.message}</p>
           </div>
           <div className="grid gap-2">
-            <label className="text-sm font-medium">الوصف</label>
-            <Textarea {...form.register("description")} />
+            <label className="text-sm font-medium">الوصف التنفيذي</label>
+            <Textarea
+              {...form.register("description")}
+              placeholder="صف الغاية من الخطة وعلاقتها بالأولويات المؤسسية الحالية."
+            />
             <p className="text-sm text-rose-600">
               {form.formState.errors.description?.message}
             </p>
@@ -67,7 +76,7 @@ export function PlanForm({ templates, users, units }: PlanFormProps) {
             <Input {...form.register("periodLabel")} placeholder="2026 - 2028" />
           </div>
           <div className="grid gap-2">
-            <label className="text-sm font-medium">القالب</label>
+            <label className="text-sm font-medium">القالب الديناميكي</label>
             <Select {...form.register("templateId")}>
               <option value="">اختر قالبًا</option>
               {templates.map((template) => (
@@ -83,6 +92,9 @@ export function PlanForm({ templates, users, units }: PlanFormProps) {
       <Card>
         <CardHeader>
           <CardTitle>الملكية والجدول الزمني</CardTitle>
+          <p className="section-subtitle">
+            حدد الجهة المالكة ومالك الخطة والفترة الزمنية المستهدفة.
+          </p>
         </CardHeader>
         <CardContent className="grid gap-4">
           <div className="grid gap-2">
@@ -119,7 +131,7 @@ export function PlanForm({ templates, users, units }: PlanFormProps) {
           </div>
           <div className="grid gap-2">
             <label className="text-sm font-medium">رمز الخطة الاختياري</label>
-            <Input {...form.register("code")} placeholder="PLAN-2026-OPS" />
+            <Input {...form.register("code")} placeholder="PLAN-OPS-2026" />
           </div>
           <Button type="submit" disabled={isPending} className="w-full">
             {isPending ? "جارٍ إنشاء الخطة..." : "إنشاء الخطة"}
@@ -129,4 +141,3 @@ export function PlanForm({ templates, users, units }: PlanFormProps) {
     </form>
   );
 }
-

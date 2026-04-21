@@ -11,7 +11,13 @@ import {
 } from "@/features/reports/schema";
 
 function reportCode(mission: string, period: string) {
-  return `REP-${mission.replace(/\s+/g, "-").replace(/[^a-zA-Z0-9-_]/g, "").toUpperCase().slice(0, 10)}-${period.replace(/\s+/g, "").slice(0, 8)}-${Date.now().toString().slice(-4)}`;
+  return `REP-${mission
+    .replace(/\s+/g, "-")
+    .replace(/[^a-zA-Z0-9-_]/g, "")
+    .toUpperCase()
+    .slice(0, 10)}-${period.replace(/\s+/g, "").slice(0, 8)}-${Date.now()
+    .toString()
+    .slice(-4)}`;
 }
 
 function completionScore(data: MissionReportFormValues) {
@@ -22,6 +28,7 @@ function completionScore(data: MissionReportFormValues) {
     data.supportRequests
   ];
   const completed = fields.filter((item) => item && item.trim().length > 4).length;
+
   return Math.round((completed / fields.length) * 100);
 }
 
@@ -48,7 +55,18 @@ export async function createMissionReportAction(payload: MissionReportFormValues
     }
   });
 
+  await prisma.auditLog.create({
+    data: {
+      actorId: currentUser.id,
+      action: "CREATE_REPORT",
+      entityType: "MissionReport",
+      entityId: report.id,
+      description: `أنشأ ${currentUser.fullNameAr} تقريرًا جديدًا بعنوان "${report.titleAr}".`
+    }
+  });
+
   revalidatePath("/reports");
+  revalidatePath("/dashboard");
   redirect(`/reports/${report.id}`);
 }
 
@@ -56,55 +74,201 @@ export async function advanceMissionReportAction(formData: FormData) {
   const currentUser = await requireCurrentUser();
   const reportId = String(formData.get("reportId"));
   const decision = String(formData.get("decision"));
-  const comment = String(formData.get("comment") ?? "");
+  const comment = String(formData.get("comment") ?? "").trim();
+
+  const report = await prisma.missionReport.findUnique({
+    where: { id: reportId },
+    include: {
+      submittedBy: true,
+      reviewer: true
+    }
+  });
+
+  if (!report) {
+    return;
+  }
+
+  const now = new Date();
 
   if (decision === "submit") {
-    await prisma.missionReport.update({
-      where: { id: reportId },
-      data: {
-        status: "SUBMITTED",
-        submittedAt: new Date()
+    await prisma.$transaction(async (tx) => {
+      await tx.missionReport.update({
+        where: { id: reportId },
+        data: {
+          status: report.reviewerId ? "UNDER_REVIEW" : "SUBMITTED",
+          submittedAt: now,
+          returnedAt: null
+        }
+      });
+
+      if (comment.length > 0) {
+        await tx.missionReportComment.create({
+          data: {
+            reportId,
+            authorId: currentUser.id,
+            type: "GENERAL",
+            comment
+          }
+        });
       }
+
+      if (report.reviewerId) {
+        await tx.approvalRequest.create({
+          data: {
+            titleAr: `مراجعة واعتماد ${report.titleAr}`,
+            description:
+              "تم رفع التقرير من البعثة وهو جاهز للمراجعة والتعليق أو الإرجاع للاستكمال.",
+            entityType: "MISSION_REPORT",
+            entityId: reportId,
+            requesterId: currentUser.id,
+            assignedToId: report.reviewerId,
+            dueDate: new Date(now.getTime() + 72 * 60 * 60 * 1000),
+            missionReportId: reportId,
+            routeSnapshot: {
+              missionNameAr: report.missionNameAr,
+              reportingPeriod: report.reportingPeriod
+            }
+          }
+        });
+
+        await tx.notification.create({
+          data: {
+            userId: report.reviewerId,
+            titleAr: "تقرير بعثة بانتظار المراجعة",
+            messageAr: `تم رفع "${report.titleAr}" من ${report.submittedBy.fullNameAr} وبانتظار المراجعة.`,
+            type: "REPORT",
+            link: `/reports/${reportId}`
+          }
+        });
+      }
+
+      await tx.auditLog.create({
+        data: {
+          actorId: currentUser.id,
+          action: "SUBMIT_REPORT",
+          entityType: "MissionReport",
+          entityId: reportId,
+          description: `رفع ${currentUser.fullNameAr} التقرير "${report.titleAr}" للمراجعة.`
+        }
+      });
     });
   }
 
   if (decision === "approve") {
-    await prisma.missionReport.update({
-      where: { id: reportId },
-      data: {
-        status: "APPROVED",
-        approvedAt: new Date()
+    await prisma.$transaction(async (tx) => {
+      await tx.missionReport.update({
+        where: { id: reportId },
+        data: {
+          status: "APPROVED",
+          approvedAt: now
+        }
+      });
+
+      await tx.approvalRequest.updateMany({
+        where: {
+          missionReportId: reportId,
+          status: "PENDING"
+        },
+        data: {
+          status: "APPROVED",
+          actedAt: now,
+          decisionComment: comment || "تم اعتماد التقرير."
+        }
+      });
+
+      if (comment.length > 0) {
+        await tx.missionReportComment.create({
+          data: {
+            reportId,
+            authorId: currentUser.id,
+            type: "REVIEW",
+            comment
+          }
+        });
       }
+
+      await tx.notification.create({
+        data: {
+          userId: report.submittedById,
+          titleAr: "تم اعتماد التقرير",
+          messageAr: `اعتمد ${currentUser.fullNameAr} التقرير "${report.titleAr}".`,
+          type: "REPORT",
+          link: `/reports/${reportId}`
+        }
+      });
+
+      await tx.auditLog.create({
+        data: {
+          actorId: currentUser.id,
+          action: "APPROVE_REPORT",
+          entityType: "MissionReport",
+          entityId: reportId,
+          description: `اعتمد ${currentUser.fullNameAr} التقرير "${report.titleAr}".`
+        }
+      });
     });
   }
 
   if (decision === "return") {
-    await prisma.missionReport.update({
-      where: { id: reportId },
-      data: {
-        status: "RETURNED",
-        returnedAt: new Date()
-      }
-    });
-  }
+    await prisma.$transaction(async (tx) => {
+      await tx.missionReport.update({
+        where: { id: reportId },
+        data: {
+          status: "RETURNED",
+          returnedAt: now
+        }
+      });
 
-  if (comment.trim().length > 0) {
-    await prisma.missionReportComment.create({
-      data: {
-        reportId,
-        authorId: currentUser.id,
-        type:
-          decision === "return"
-            ? "RETURN"
-            : decision === "approve"
-              ? "REVIEW"
-              : "GENERAL",
-        comment
+      await tx.approvalRequest.updateMany({
+        where: {
+          missionReportId: reportId,
+          status: "PENDING"
+        },
+        data: {
+          status: "RETURNED",
+          actedAt: now,
+          decisionComment: comment || "أعيد التقرير للاستكمال."
+        }
+      });
+
+      if (comment.length > 0) {
+        await tx.missionReportComment.create({
+          data: {
+            reportId,
+            authorId: currentUser.id,
+            type: "RETURN",
+            comment
+          }
+        });
       }
+
+      await tx.notification.create({
+        data: {
+          userId: report.submittedById,
+          titleAr: "أعيد التقرير للاستكمال",
+          messageAr:
+            comment.length > 0
+              ? comment
+              : `أعاد ${currentUser.fullNameAr} التقرير "${report.titleAr}" مع طلب استكمال الملاحظات.`,
+          type: "REPORT",
+          link: `/reports/${reportId}`
+        }
+      });
+
+      await tx.auditLog.create({
+        data: {
+          actorId: currentUser.id,
+          action: "RETURN_REPORT",
+          entityType: "MissionReport",
+          entityId: reportId,
+          description: `أعاد ${currentUser.fullNameAr} التقرير "${report.titleAr}" للاستكمال.`
+        }
+      });
     });
   }
 
   revalidatePath(`/reports/${reportId}`);
   revalidatePath("/reports");
+  revalidatePath("/approvals");
+  revalidatePath("/dashboard");
 }
-

@@ -20,7 +20,19 @@ export async function createMonitoringUpdateAction(
   const currentUser = await requireCurrentUser();
   const data = monitoringUpdateSchema.parse(payload);
 
-  await prisma.monitoringUpdate.create({
+  const cycle = await prisma.monitoringCycle.findUnique({
+    where: { id: cycleId },
+    include: {
+      plan: true,
+      createdBy: true
+    }
+  });
+
+  if (!cycle) {
+    return;
+  }
+
+  const update = await prisma.monitoringUpdate.create({
     data: {
       cycleId: data.cycleId,
       planNodeId: emptyToNull(data.planNodeId),
@@ -34,6 +46,37 @@ export async function createMonitoringUpdateAction(
     }
   });
 
-  revalidatePath(`/monitoring/${cycleId}`);
-}
+  await prisma.$transaction([
+    prisma.monitoringCycle.update({
+      where: { id: cycleId },
+      data: {
+        status: "IN_REVIEW"
+      }
+    }),
+    prisma.notification.create({
+      data: {
+        userId: cycle.createdById,
+        titleAr: "تحديث متابعة جديد",
+        messageAr:
+          data.obstacleText.trim().length > 0
+            ? `أضيف تحديث يتضمن عائقًا ضمن "${cycle.titleAr}" ويحتاج مراجعة.`
+            : `أضيف تحديث متابعة جديد ضمن "${cycle.titleAr}".`,
+        type: "ALERT",
+        link: `/monitoring/${cycleId}`
+      }
+    }),
+    prisma.auditLog.create({
+      data: {
+        actorId: currentUser.id,
+        action: "CREATE_MONITORING_UPDATE",
+        entityType: "MonitoringUpdate",
+        entityId: update.id,
+        description: `أضاف ${currentUser.fullNameAr} تحديثًا جديدًا على دورة "${cycle.titleAr}".`
+      }
+    })
+  ]);
 
+  revalidatePath(`/monitoring/${cycleId}`);
+  revalidatePath("/monitoring");
+  revalidatePath("/dashboard");
+}

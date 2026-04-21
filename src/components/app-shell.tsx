@@ -42,7 +42,7 @@ export function AppShell({
       <div className="mx-auto flex max-w-[1700px] flex-col gap-6 xl:flex-row-reverse">
         <aside className="w-full shrink-0 xl:w-[300px]">
           <div className="surface-grid sticky top-4 rounded-[32px] border border-white/80 bg-[#eef3f0]/90 p-5 shadow-soft backdrop-blur">
-            <div className="mb-6 rounded-[24px] bg-white/80 p-5">
+            <div className="mb-6 rounded-[24px] bg-white/85 p-5">
               <p className="text-xs font-medium uppercase tracking-[0.25em] text-primary">
                 {siteConfig.shortName}
               </p>
@@ -70,36 +70,48 @@ export function AppShell({
                   ) : null}
                 </div>
               </div>
+              <div className="rounded-2xl border border-border/70 bg-slate-50 p-4 text-sm leading-7 text-muted-foreground">
+                بيئة عرض مهيأة لاجتماعات أصحاب المصلحة، مع واجهة عربية أصلية وقراءة
+                تنفيذية للخطة والمؤشرات وسير الاعتماد.
+              </div>
             </div>
           </div>
         </aside>
 
         <main className="min-w-0 flex-1 space-y-6">
-          <header className="flex flex-col gap-4 rounded-[28px] border border-white/70 bg-white/85 p-5 shadow-soft backdrop-blur lg:flex-row lg:items-center lg:justify-between">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Shield className="h-4 w-4 text-primary" />
-                بيئة عرض تنفيذية باللغة العربية مع دعم RTL كامل
+          <header className="relative overflow-hidden rounded-[32px] border border-white/70 bg-white/85 p-6 shadow-soft backdrop-blur">
+            <div className="absolute inset-y-0 left-0 w-40 bg-[radial-gradient(circle_at_center,rgba(12,109,98,0.12),transparent_68%)]" />
+            <div className="relative flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Shield className="h-4 w-4 text-primary" />
+                  نسخة عرض تنفيذية باللغة العربية مع دعم RTL كامل
+                </div>
+                <h1 className="text-2xl font-bold text-dashboard-ink">
+                  مرحبًا، {user.fullNameAr}
+                </h1>
+                <p className="max-w-3xl text-sm leading-8 text-muted-foreground">
+                  {user.organizationalUnit?.nameAr ?? "الإدارة العامة"} • آخر تحديث
+                  لبيئة العرض {` ${formatDate(new Date())}`}، مع إتاحة الوصول السريع
+                  إلى المؤشرات والاعتمادات والعناصر الحرجة.
+                </p>
               </div>
-              <h1 className="text-2xl font-bold text-dashboard-ink">
-                مرحبًا، {user.fullNameAr}
-              </h1>
-              <p className="text-sm leading-7 text-muted-foreground">
-                {user.organizationalUnit?.nameAr ?? "الإدارة العامة"} • آخر تحديث للوحة
-                {` ${formatDate(new Date())}`}
-              </p>
-            </div>
 
-            <div className="flex flex-wrap items-center gap-3">
-              <Button asChild variant="secondary">
-                <Link href="/approvals">قائمة الاعتمادات</Link>
-              </Button>
-              <form action={logoutAction}>
-                <Button type="submit" variant="outline">
-                  <LogOut className="me-2 h-4 w-4" />
-                  تسجيل الخروج
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="rounded-2xl border border-primary/10 bg-primary/5 px-4 py-3 text-sm text-dashboard-ink">
+                  <span className="font-semibold">اعتمادات معلقة:</span>{" "}
+                  {pendingApprovalsCount}
+                </div>
+                <Button asChild variant="secondary">
+                  <Link href="/approvals">قائمة الاعتمادات</Link>
                 </Button>
-              </form>
+                <form action={logoutAction}>
+                  <Button type="submit" variant="outline">
+                    <LogOut className="me-2 h-4 w-4" />
+                    تسجيل الخروج
+                  </Button>
+                </form>
+              </div>
             </div>
           </header>
 
@@ -129,8 +141,17 @@ export function AppShell({
                       <p className="mt-2 text-sm leading-7 text-muted-foreground">
                         {notification.messageAr}
                       </p>
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        {formatDate(notification.createdAt)}
+                      </p>
                     </Link>
                   ))}
+                  {notifications.length === 0 ? (
+                    <div className="rounded-2xl border border-dashed border-border p-5 text-sm leading-7 text-muted-foreground">
+                      لا توجد تنبيهات جديدة في هذه اللحظة. يمكنك متابعة لوحة القيادة
+                      أو الاعتمادات لمعرفة آخر المستجدات.
+                    </div>
+                  ) : null}
                 </div>
               </div>
             </div>

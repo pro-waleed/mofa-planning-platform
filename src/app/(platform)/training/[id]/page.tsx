@@ -13,7 +13,7 @@ import { prisma } from "@/lib/prisma";
 import { getTrainingProgramById } from "@/services/platform";
 
 type TrainingProgramDetail = NonNullable<Awaited<ReturnType<typeof getTrainingProgramById>>>;
-type ManagerUser = Awaited<ReturnType<typeof prisma.user.findMany>>[number];
+type ManagerUser = { id: string; fullNameAr: string };
 
 export default async function TrainingDetailPage({
   params
@@ -30,6 +30,10 @@ export default async function TrainingDetailPage({
       role: {
         code: "DEPARTMENT_MANAGER"
       }
+    },
+    select: {
+      id: true,
+      fullNameAr: true
     },
     orderBy: { fullNameAr: "asc" }
   });

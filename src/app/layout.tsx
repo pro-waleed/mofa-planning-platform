@@ -15,7 +15,10 @@ export const metadata: Metadata = {
     default: siteConfig.name,
     template: `%s | ${siteConfig.shortName}`
   },
-  description: siteConfig.description
+  description: siteConfig.description,
+  metadataBase: process.env.NEXT_PUBLIC_BASE_URL
+    ? new URL(process.env.NEXT_PUBLIC_BASE_URL)
+    : undefined
 };
 
 type RootLayoutProps = Readonly<{
@@ -31,4 +34,3 @@ export default function RootLayout({ children }: RootLayoutProps) {
     </html>
   );
 }
-

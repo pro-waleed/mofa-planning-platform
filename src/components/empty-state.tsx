@@ -19,14 +19,14 @@ export function EmptyState({
   actionLabel
 }: EmptyStateProps) {
   return (
-    <Card className="border-dashed">
+    <Card className="border-dashed border-border/80 bg-white/75">
       <CardContent className="flex flex-col items-center gap-4 py-12 text-center">
         <div className="rounded-full bg-primary/10 p-4 text-primary">
           <PlusCircle className="h-6 w-6" />
         </div>
         <div className="space-y-2">
-          <h3 className="text-lg font-bold">{title}</h3>
-          <p className="max-w-md text-sm leading-7 text-muted-foreground">
+          <h3 className="text-lg font-bold text-dashboard-ink">{title}</h3>
+          <p className="max-w-md text-sm leading-8 text-muted-foreground">
             {description}
           </p>
         </div>

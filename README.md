@@ -171,7 +171,20 @@ Open [http://localhost:3000/login](http://localhost:3000/login).
 
 ## Demo Access
 
-The MVP uses a seeded demo login screen. After seeding the database, `/login` lists Arabic role-based demo users such as `مسؤول النظام`, `مدير عام`, `مدير إدارة`, `محلل تخطيط`, `مسؤول متابعة`, `مسؤول تدريب`, `مستخدم بعثة`, and `قارئ فقط`.
+The MVP now uses a credential-based demo login rather than one-click user switching. Seeded users have a unique username, hashed password, role, organizational unit, and permission set. Open `/login` and use one of these stakeholder demo accounts:
+
+| Scenario | Username | Password |
+| --- | --- | --- |
+| Director General dashboard and approvals | `dg` | `Dg@2026` |
+| System administration and permissions | `admin` | `Admin@2026` |
+| Planning manager workflow review | `plan.manager` | `Manager@2026` |
+| Planning analyst plan/tree editing | `planner1` | `Planner@2026` |
+| Monitoring officer cycle updates | `monitor1` | `Monitor@2026` |
+| Training officer nomination flow | `training1` | `Training@2026` |
+| Mission report user | `riyadh1` | `Mission@2026` |
+| Read-only reviewer | `reader` | `Reader@2026` |
+
+These credentials are for demo use only. Production should replace this with SSO or an enterprise identity provider.
 
 ## Neon Setup
 
@@ -220,8 +233,11 @@ npm run prisma:migrate
 npm run prisma:migrate:dev
 npm run prisma:push
 npm run db:seed
+npm run db:seed-auth
 npm run prisma:studio
 ```
+
+Use `npm run db:seed-auth` when the database already has demo data and you only need to refresh usernames, demo passwords, and role permissions without reseeding all institutional records.
 
 ## Docker Setup
 
@@ -278,6 +294,12 @@ Use one of these patterns:
 ### 6. Seed demo data
 
 Seed the database from a trusted environment before the stakeholder demo, or load equivalent production-safe fixtures.
+
+For an existing demo database, refresh only login credentials and role permission metadata with:
+
+```bash
+npm run db:seed-auth
+```
 
 ## Recommended Repository Settings
 

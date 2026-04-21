@@ -15,6 +15,10 @@ export default async function NewReportPage() {
           }
         }
       },
+      select: {
+        id: true,
+        fullNameAr: true
+      },
       orderBy: { fullNameAr: "asc" }
     })
   ]);
@@ -23,11 +27,10 @@ export default async function NewReportPage() {
     <div className="space-y-6 page-shell">
       <PageHeader
         title="رفع تقرير بعثة"
-        description="نموذج موحد لرفع التقارير الدورية مع ملخص تنفيذي وإنجازات وتحديات وطلبات دعم."
+        description="نموذج عربي موحد للتقارير الدورية، يراعي الملخص التنفيذي والإنجازات والتحديات وطلبات الدعم ضمن مسار مراجعة واضح."
         backHref="/reports"
       />
       <ReportForm units={units} reviewers={reviewers} />
     </div>
   );
 }
-

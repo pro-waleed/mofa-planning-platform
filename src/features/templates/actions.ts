@@ -64,7 +64,7 @@ export async function createTemplateAction(payload: TemplateFormValues) {
             templateId: createdTemplate.id,
             levelId: createdLevel.id,
             key: `${level.key}_note`,
-            labelAr: "ملاحظات",
+            labelAr: "ملاحظات تفسيرية",
             fieldType: "LONG_TEXT",
             fieldOrder: 2,
             isRequired: false,
@@ -85,12 +85,14 @@ export async function updateTemplateAction(
   templateId: string,
   payload: Pick<TemplateFormValues, "nameAr" | "description" | "moduleScope" | "status">
 ) {
-  const data = templateSchema.pick({
-    nameAr: true,
-    description: true,
-    moduleScope: true,
-    status: true
-  }).parse(payload);
+  const data = templateSchema
+    .pick({
+      nameAr: true,
+      description: true,
+      moduleScope: true,
+      status: true
+    })
+    .parse(payload);
 
   await prisma.template.update({
     where: { id: templateId },

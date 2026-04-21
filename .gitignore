@@ -25,3 +25,5 @@ generated
 package-lock.json.bak
 *.tsbuildinfo
 tsconfig.tsbuildinfo
+
+.vercel

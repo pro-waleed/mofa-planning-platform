@@ -17,7 +17,11 @@ function toNullable(value?: string | null) {
 }
 
 function planCode(seed: string) {
-  return `PLAN-${seed.replace(/\s+/g, "-").replace(/[^a-zA-Z0-9-_]/g, "").toUpperCase().slice(0, 20)}-${Date.now().toString().slice(-4)}`;
+  return `PLAN-${seed
+    .replace(/\s+/g, "-")
+    .replace(/[^a-zA-Z0-9-_]/g, "")
+    .toUpperCase()
+    .slice(0, 20)}-${Date.now().toString().slice(-4)}`;
 }
 
 export async function createPlanAction(payload: PlanFormValues) {
@@ -33,7 +37,7 @@ export async function createPlanAction(payload: PlanFormValues) {
   });
 
   if (!template) {
-    throw new Error("Template not found");
+    throw new Error("تعذر العثور على القالب المحدد.");
   }
 
   const plan = await prisma.plan.create({
@@ -50,7 +54,7 @@ export async function createPlanAction(payload: PlanFormValues) {
       endDate: new Date(data.endDate),
       templateSnapshot: {
         templateName: template.nameAr,
-        levels: template.levels.map((level: (typeof template.levels)[number]) => ({
+        levels: template.levels.map((level) => ({
           id: level.id,
           key: level.key,
           nameAr: level.nameAr,
@@ -66,17 +70,65 @@ export async function createPlanAction(payload: PlanFormValues) {
 
 export async function createPlanNodeAction(payload: PlanNodeCreateValues) {
   const data = planNodeCreateSchema.parse(payload);
+
+  const plan = await prisma.plan.findUnique({
+    where: { id: data.planId },
+    include: {
+      template: {
+        include: {
+          levels: {
+            orderBy: { levelOrder: "asc" }
+          }
+        }
+      }
+    }
+  });
+
+  if (!plan) {
+    throw new Error("تعذر العثور على الخطة.");
+  }
+
+  const selectedLevel = plan.template.levels.find(
+    (level) => level.id === data.templateLevelId
+  );
+
+  if (!selectedLevel) {
+    throw new Error("المستوى المحدد لا ينتمي إلى قالب الخطة.");
+  }
+
+  const parentId = toNullable(data.parentId);
+  let expectedLevelOrder = 1;
+
+  if (parentId) {
+    const parentNode = await prisma.planNode.findUnique({
+      where: { id: parentId },
+      include: {
+        templateLevel: true
+      }
+    });
+
+    if (!parentNode || parentNode.planId !== plan.id) {
+      throw new Error("العقدة الأم المحددة غير صالحة.");
+    }
+
+    expectedLevelOrder = parentNode.templateLevel.levelOrder + 1;
+  }
+
+  if (selectedLevel.levelOrder !== expectedLevelOrder) {
+    throw new Error("ترتيب العقدة لا يطابق تسلسل القالب الديناميكي.");
+  }
+
   const siblings = await prisma.planNode.count({
     where: {
       planId: data.planId,
-      parentId: toNullable(data.parentId)
+      parentId
     }
   });
 
   await prisma.planNode.create({
     data: {
       planId: data.planId,
-      parentId: toNullable(data.parentId),
+      parentId,
       templateLevelId: data.templateLevelId,
       titleAr: data.titleAr,
       description: toNullable(data.description),
@@ -94,6 +146,11 @@ export async function createPlanNodeAction(payload: PlanNodeCreateValues) {
 export async function updatePlanNodeAction(formData: FormData) {
   const nodeId = String(formData.get("nodeId"));
   const planId = String(formData.get("planId"));
+  const progressPercent = Math.min(
+    100,
+    Math.max(0, Number(formData.get("progressPercent") ?? 0))
+  );
+  const sortOrder = Math.max(1, Number(formData.get("sortOrder") ?? 1));
 
   await prisma.planNode.update({
     where: { id: nodeId },
@@ -107,8 +164,8 @@ export async function updatePlanNodeAction(formData: FormData) {
         | "AT_RISK"
         | "COMPLETED"
         | "ON_HOLD",
-      progressPercent: Number(formData.get("progressPercent") ?? 0),
-      sortOrder: Number(formData.get("sortOrder") ?? 1),
+      progressPercent,
+      sortOrder,
       startDate: toNullable(String(formData.get("startDate") ?? ""))
         ? new Date(String(formData.get("startDate")))
         : null,
@@ -169,21 +226,30 @@ export async function linkKpiToNodeAction(formData: FormData) {
 export async function submitPlanForApprovalAction(formData: FormData) {
   const currentUser = await requireCurrentUser();
   const planId = String(formData.get("planId"));
-  const plan = await prisma.plan.findUnique({
-    where: { id: planId }
-  });
+
+  const [plan, planNodeCount, directorGeneral] = await Promise.all([
+    prisma.plan.findUnique({
+      where: { id: planId }
+    }),
+    prisma.planNode.count({
+      where: { planId }
+    }),
+    prisma.user.findFirst({
+      where: {
+        role: {
+          code: "DIRECTOR_GENERAL"
+        }
+      }
+    })
+  ]);
 
   if (!plan) {
-    throw new Error("Plan not found");
+    throw new Error("تعذر العثور على الخطة.");
   }
 
-  const directorGeneral = await prisma.user.findFirst({
-    where: {
-      role: {
-        code: "DIRECTOR_GENERAL"
-      }
-    }
-  });
+  if (planNodeCount === 0) {
+    throw new Error("لا يمكن رفع الخطة قبل إضافة عقدة واحدة على الأقل.");
+  }
 
   await prisma.plan.update({
     where: { id: planId },
@@ -196,8 +262,9 @@ export async function submitPlanForApprovalAction(formData: FormData) {
   if (directorGeneral) {
     await prisma.approvalRequest.create({
       data: {
-        titleAr: `اعتماد ${plan.titleAr}`,
-        description: "طلب اعتماد تم إنشاؤه من شاشة الخطة.",
+        titleAr: `اعتماد الخطة: ${plan.titleAr}`,
+        description:
+          "تم رفع الخطة إلى مسار الاعتماد بعد استكمال بنيتها الأساسية ومسارات الملكية.",
         entityType: "PLAN",
         entityId: plan.id,
         requesterId: currentUser.id,
@@ -206,8 +273,19 @@ export async function submitPlanForApprovalAction(formData: FormData) {
         status: "PENDING"
       }
     });
+
+    await prisma.notification.create({
+      data: {
+        userId: directorGeneral.id,
+        titleAr: "طلب اعتماد خطة جديد",
+        messageAr: `تم رفع الخطة "${plan.titleAr}" بانتظار المراجعة والقرار.`,
+        type: "APPROVAL",
+        link: "/approvals"
+      }
+    });
   }
 
   revalidatePath(`/plans/${planId}`);
   revalidatePath("/approvals");
+  revalidatePath("/dashboard");
 }

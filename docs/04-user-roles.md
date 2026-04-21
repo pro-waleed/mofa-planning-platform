@@ -2,7 +2,20 @@
 
 ## Role Model
 
-The MVP seeds eight institutional roles. The current implementation uses demo session selection on `/login`, while the data model is prepared for future role-based access expansion.
+The MVP seeds eight institutional roles. Each seeded user has a username, hashed password, role, organizational unit, and a JSON permission list that prepares the platform for a fuller RBAC implementation.
+
+## Demo Credentials
+
+| Role scenario | Username | Password |
+| --- | --- | --- |
+| مدير عام | `dg` | `Dg@2026` |
+| مسؤول النظام | `admin` | `Admin@2026` |
+| مدير إدارة التخطيط | `plan.manager` | `Manager@2026` |
+| محلل تخطيط | `planner1` | `Planner@2026` |
+| مسؤول متابعة | `monitor1` | `Monitor@2026` |
+| مسؤول تدريب | `training1` | `Training@2026` |
+| مستخدم بعثة | `riyadh1` | `Mission@2026` |
+| قارئ فقط | `reader` | `Reader@2026` |
 
 ## Roles And Responsibilities
 

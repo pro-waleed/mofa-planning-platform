@@ -55,6 +55,12 @@ npm run prisma:push
 npm run db:seed
 ```
 
+For an existing demo database where you only need to refresh login credentials and role permissions, run:
+
+```bash
+npm run db:seed-auth
+```
+
 ## GitHub Preparation
 
 ### 1. Initialize and push
@@ -110,8 +116,8 @@ Alternative for demo-only environments:
 After deployment:
 
 - open `/login`
-- confirm seeded users appear
-- sign in as `مدير عام`
+- confirm the credential login form appears with demo account guidance
+- sign in as Director General using `dg` / `Dg@2026`
 - review `/dashboard`
 - open `/templates`, `/plans`, `/reports`, `/training`, and `/approvals`
 

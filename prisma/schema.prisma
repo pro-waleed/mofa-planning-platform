@@ -133,6 +133,7 @@ model Role {
   code        String   @unique
   nameAr      String
   description String?  @db.Text
+  permissions Json     @default("[]")
   users       User[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -161,7 +162,12 @@ model OrganizationalUnit {
 
 model User {
   id                      String                  @id @default(cuid())
+  username                String?                 @unique
   email                   String                  @unique
+  passwordHash            String                  @default("")
+  passwordUpdatedAt       DateTime?
+  failedLoginCount        Int                     @default(0)
+  lastFailedLoginAt       DateTime?
   fullNameAr              String
   fullNameEn              String?
   titleAr                 String?
@@ -198,6 +204,7 @@ model User {
 
   @@index([roleId])
   @@index([organizationalUnitId])
+  @@index([username])
 }
 
 model Template {

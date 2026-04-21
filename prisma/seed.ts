@@ -1,8 +1,25 @@
 import { PrismaClient } from "@prisma/client";
 
+import { demoAccountByUserId } from "../src/config/demo-accounts";
+import { hashPassword } from "../src/lib/password";
+
 const prisma = new PrismaClient();
 
 const d = (value: string) => new Date(value);
+
+function loginFields(userId: string) {
+  const account = demoAccountByUserId[userId];
+
+  if (!account) {
+    throw new Error(`Missing demo credentials for ${userId}`);
+  }
+
+  return {
+    username: account.username,
+    passwordHash: hashPassword(account.password),
+    passwordUpdatedAt: d("2026-04-01T00:00:00Z")
+  };
+}
 
 async function main() {
   await prisma.$transaction([
@@ -35,48 +52,98 @@ async function main() {
       {
         id: "role-admin",
         code: "SYSTEM_ADMIN",
+        permissions: ["*"],
         nameAr: "مسؤول النظام",
         description: "يدير إعدادات النظام والصلاحيات والتهيئة العامة."
       },
       {
         id: "role-dg",
         code: "DIRECTOR_GENERAL",
+        permissions: [
+          "dashboard.read",
+          "plans.approve",
+          "approvals.decide",
+          "reports.review",
+          "kpis.read",
+          "audit.read"
+        ],
         nameAr: "مدير عام",
         description: "يطلع على المؤشرات التنفيذية ويعتمد المسارات الرئيسية."
       },
       {
         id: "role-manager",
         code: "DEPARTMENT_MANAGER",
+        permissions: [
+          "dashboard.read",
+          "plans.review",
+          "plans.submit",
+          "approvals.decide",
+          "reports.review",
+          "training.approve"
+        ],
         nameAr: "مدير إدارة",
         description: "يقود الاعتمادات ويراجع الخطط والمبادرات المرتبطة بإدارته."
       },
       {
         id: "role-planner",
         code: "PLANNING_ANALYST",
+        permissions: [
+          "templates.manage",
+          "plans.create",
+          "plans.edit",
+          "kpis.manage",
+          "knowledge.manage"
+        ],
         nameAr: "محلل تخطيط",
         description: "يبني القوالب والخطط ويحلل مؤشرات الأداء."
       },
       {
         id: "role-monitor",
         code: "MONITORING_OFFICER",
+        permissions: [
+          "monitoring.manage",
+          "monitoring.submit",
+          "initiatives.update",
+          "kpis.update",
+          "reports.read"
+        ],
         nameAr: "مسؤول متابعة",
         description: "يدير دورات المتابعة والتقييم ويراجع التقدم والعوائق."
       },
       {
         id: "role-training",
         code: "TRAINING_OFFICER",
+        permissions: [
+          "training.manage",
+          "training.nominations.review",
+          "knowledge.manage",
+          "reports.read"
+        ],
         nameAr: "مسؤول تدريب",
         description: "ينشر فرص التدريب ويتابع الترشيحات والمخرجات."
       },
       {
         id: "role-mission",
         code: "MISSION_USER",
+        permissions: [
+          "reports.create",
+          "reports.edit_own",
+          "training.nominate_self",
+          "knowledge.read"
+        ],
         nameAr: "مستخدم بعثة",
         description: "يرفع تقارير البعثات الدورية ويتابع الملاحظات."
       },
       {
         id: "role-reader",
         code: "READ_ONLY",
+        permissions: [
+          "dashboard.read",
+          "plans.read",
+          "reports.read",
+          "kpis.read",
+          "knowledge.read"
+        ],
         nameAr: "قارئ فقط",
         description: "صلاحية اطلاع للملفات والتقارير دون تعديل."
       }
@@ -129,6 +196,7 @@ async function main() {
     data: [
       {
         id: "user-admin",
+        ...loginFields("user-admin"),
         email: "admin@mofa.ye",
         fullNameAr: "سامي عبدالله الشامي",
         titleAr: "مدير الأنظمة المؤسسية",
@@ -139,6 +207,7 @@ async function main() {
       },
       {
         id: "user-dg",
+        ...loginFields("user-dg"),
         email: "dg@mofa.ye",
         fullNameAr: "د. نهى عبدالكريم القباطي",
         titleAr: "المدير العام للتخطيط والبحوث",
@@ -149,6 +218,7 @@ async function main() {
       },
       {
         id: "user-plan-manager",
+        ...loginFields("user-plan-manager"),
         email: "plan.manager@mofa.ye",
         fullNameAr: "خالد يحيى النعمان",
         titleAr: "مدير إدارة التخطيط",
@@ -159,6 +229,7 @@ async function main() {
       },
       {
         id: "user-monitor-manager",
+        ...loginFields("user-monitor-manager"),
         email: "monitor.manager@mofa.ye",
         fullNameAr: "هدى عبدالسلام سنان",
         titleAr: "مدير إدارة المتابعة والتقييم",
@@ -169,6 +240,7 @@ async function main() {
       },
       {
         id: "user-planner-1",
+        ...loginFields("user-planner-1"),
         email: "planner1@mofa.ye",
         fullNameAr: "مريم محمد القدسي",
         titleAr: "محلل تخطيط أول",
@@ -179,6 +251,7 @@ async function main() {
       },
       {
         id: "user-planner-2",
+        ...loginFields("user-planner-2"),
         email: "planner2@mofa.ye",
         fullNameAr: "علي حسن العنسي",
         titleAr: "محلل تخطيط",
@@ -189,6 +262,7 @@ async function main() {
       },
       {
         id: "user-monitor-1",
+        ...loginFields("user-monitor-1"),
         email: "monitor1@mofa.ye",
         fullNameAr: "فاطمة صالح الشرجبي",
         titleAr: "مسؤول متابعة وتقييم",
@@ -199,6 +273,7 @@ async function main() {
       },
       {
         id: "user-training-1",
+        ...loginFields("user-training-1"),
         email: "training1@mofa.ye",
         fullNameAr: "أحمد عبدالوهاب المقالح",
         titleAr: "مسؤول التدريب والتأهيل",
@@ -209,6 +284,7 @@ async function main() {
       },
       {
         id: "user-riyadh-1",
+        ...loginFields("user-riyadh-1"),
         email: "riyadh1@mofa.ye",
         fullNameAr: "ليلى عبدالملك القباطي",
         titleAr: "منسق تقارير البعثة - الرياض",
@@ -219,6 +295,7 @@ async function main() {
       },
       {
         id: "user-riyadh-2",
+        ...loginFields("user-riyadh-2"),
         email: "riyadh2@mofa.ye",
         fullNameAr: "ياسر محمد الجرادي",
         titleAr: "مسؤول تعاون وبحوث - الرياض",
@@ -229,6 +306,7 @@ async function main() {
       },
       {
         id: "user-cairo-1",
+        ...loginFields("user-cairo-1"),
         email: "cairo1@mofa.ye",
         fullNameAr: "نجلاء محمود الأهدل",
         titleAr: "منسق تقارير البعثة - القاهرة",
@@ -239,6 +317,7 @@ async function main() {
       },
       {
         id: "user-reader",
+        ...loginFields("user-reader"),
         email: "reader@mofa.ye",
         fullNameAr: "عبدالرحمن ثابت المعافا",
         titleAr: "مستشار اطلاع",

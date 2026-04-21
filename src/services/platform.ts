@@ -67,7 +67,8 @@ export async function getDashboardData(userId: string) {
       },
       include: {
         initiatives: true,
-        organizationalUnit: true
+        organizationalUnit: true,
+        owner: true
       },
       orderBy: { updatedAt: "desc" },
       take: 5
@@ -198,6 +199,11 @@ export async function getTemplateById(id: string) {
   return prisma.template.findUnique({
     where: { id },
     include: {
+      _count: {
+        select: {
+          plans: true
+        }
+      },
       createdBy: true,
       levels: {
         include: {
@@ -505,7 +511,9 @@ export async function getApprovals() {
       missionReport: true,
       trainingNomination: {
         include: {
-          nominee: true
+          nominee: true,
+          manager: true,
+          program: true
         }
       },
       monitoringCycle: true,
@@ -517,12 +525,33 @@ export async function getApprovals() {
 
 export async function getUsersDirectory() {
   return prisma.user.findMany({
-    include: {
-      role: true,
-      organizationalUnit: true,
+    select: {
+      id: true,
+      username: true,
+      email: true,
+      fullNameAr: true,
+      titleAr: true,
+      status: true,
+      lastLoginAt: true,
+      failedLoginCount: true,
+      role: {
+        select: {
+          code: true,
+          nameAr: true,
+          permissions: true
+        }
+      },
+      organizationalUnit: {
+        select: {
+          nameAr: true
+        }
+      },
       notifications: {
         where: {
           status: "UNREAD"
+        },
+        select: {
+          id: true
         }
       }
     },

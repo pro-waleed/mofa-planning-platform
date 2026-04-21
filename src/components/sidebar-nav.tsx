@@ -84,9 +84,8 @@ export function SidebarNav({ notificationCount }: SidebarNavProps) {
         className="mt-6 flex items-center gap-3 rounded-2xl border border-dashed border-border px-4 py-3 text-sm font-medium text-slate-600 transition hover:bg-white hover:text-slate-900"
       >
         <Bell className="h-4 w-4" />
-        تبديل الدور التجريبي
+        تبديل دور العرض
       </Link>
     </nav>
   );
 }
-

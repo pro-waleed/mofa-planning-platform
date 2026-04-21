@@ -17,14 +17,33 @@ body {
     radial-gradient(circle at top left, rgba(214, 231, 223, 0.8), transparent 28%),
     linear-gradient(180deg, #f8faf8 0%, #f1f5f2 100%);
   color: #12211d;
+  font-feature-settings:
+    "ss01" 1,
+    "ss02" 1;
 }
 
 * {
+  box-sizing: border-box;
   border-color: #d7dfdc;
 }
 
 ::selection {
   background: rgba(12, 109, 98, 0.18);
+}
+
+input,
+select,
+textarea,
+button {
+  font: inherit;
+}
+
+a,
+button,
+input,
+select,
+textarea {
+  -webkit-tap-highlight-color: transparent;
 }
 
 .surface-grid {
@@ -42,6 +61,12 @@ body {
   @apply rounded-2xl border border-dashboard-line/70 bg-white/90 shadow-panel backdrop-blur-sm;
 }
 
+.hero-panel {
+  background:
+    radial-gradient(circle at top left, rgba(12, 109, 98, 0.09), transparent 34%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(255, 255, 255, 0.88) 100%);
+}
+
 .section-title {
   @apply text-lg font-bold text-dashboard-ink;
 }
@@ -52,6 +77,10 @@ body {
 
 .metric-chip {
   @apply inline-flex items-center rounded-full border border-primary/10 bg-primary/5 px-3 py-1 text-sm font-medium text-primary;
+}
+
+.executive-kicker {
+  @apply text-xs font-semibold tracking-[0.2em] text-primary/80;
 }
 
 .status-draft {
@@ -69,4 +98,3 @@ body {
 .status-danger {
   @apply bg-rose-100 text-rose-700;
 }
-
